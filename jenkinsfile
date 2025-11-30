@@ -2,7 +2,7 @@ pipeline {
   agent any
   environment {
     EC2_USER = "ubuntu"                       // set to ubuntu or ec2-user as appropriate
-    EC2_HOST = ""                             // optional: can be set dynamically via terraform output
+    EC2_HOST = "65.1.111.60"                             // optional: can be set dynamically via terraform output
     REMOTE_DIR = "/var/www/html"
     SSH_CREDENTIAL_ID = "ec2-ssh-key"         // replace with the Jenkins SSH credentials id
   }
