@@ -1,11 +1,11 @@
 pipeline {
     agent any
     environment {
-        EC2_USER = "ubuntu"                       // Ubuntu EC2 username
-        EC2_HOST = "65.1.111.60"                  // Your EC2 public IP
-        REMOTE_DIR = "/var/www/html"
-        SSH_CREDENTIAL_ID = "ec2-ssh-key"         // Jenkins credential ID with AdityaKadam.pem
-        GIT_REPO = "https://github.com/Adi-Kadam-07/Static-Web-Deployment--Terra-Jen.git" // Your repo URL
+        EC2_USER = "ubuntu"                       // EC2 username
+        EC2_HOST = "65.1.111.60"                  // EC2 public IP
+        REMOTE_DIR = "/var/www/html"              // Deployment directory
+        SSH_CREDENTIAL_ID = "ec2-ssh-key"         // Jenkins SSH credential ID
+        GIT_REPO = "https://github.com/Adi-Kadam-07/Static-Web-Deployment--Terra-Jen.git" // Your repo
     }
     stages {
         stage('Checkout') {
@@ -16,27 +16,36 @@ pipeline {
 
         stage('Deploy to EC2 via SSH') {
             steps {
-                script {
-                    if (!env.EC2_HOST?.trim()) {
-                        error "EC2_HOST environment variable is empty. Set EC2_HOST to instance public IP."
-                    }
-                }
-
-                // Use Jenkins SSH credential
                 sshagent([env.SSH_CREDENTIAL_ID]) {
                     sh """
-                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'bash -s' <<'ENDSSH'
+                    ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'bash -s' <<ENDSSH
                         set -e
-                        cd ${REMOTE_DIR}
-                        if [ -d .git ]; then
-                            /usr/bin/git pull origin main || true
+
+                        # Mark the directory as safe for Git
+                        git config --global --add safe.directory ${REMOTE_DIR}
+
+                        # Ensure deployment directory exists
+                        sudo mkdir -p ${REMOTE_DIR}
+
+                        # Pull latest changes if repo exists, else clone
+                        if [ -d ${REMOTE_DIR}/.git ]; then
+                            sudo git -C ${REMOTE_DIR} pull origin main || true
                         else
-                            /usr/bin/git clone ${GIT_REPO} ${REMOTE_DIR}
+                            sudo git clone ${GIT_REPO} ${REMOTE_DIR}
                         fi
+
+                        # Fix permissions for Nginx
                         sudo chown -R www-data:www-data ${REMOTE_DIR}
                         sudo chmod -R 755 ${REMOTE_DIR}
+
+                        # Ensure index.html exists
+                        if [ ! -f ${REMOTE_DIR}/index.html ]; then
+                            echo '<h1>Deployment successful!</h1>' | sudo tee ${REMOTE_DIR}/index.html
+                        fi
+
+                        # Restart Nginx
                         sudo systemctl restart nginx
-                    ENDSSH
+ENDSSH
                     """
                 }
             }
@@ -44,7 +53,7 @@ pipeline {
 
         stage('Validation') {
             steps {
-                echo "Deployment finished. Check your website at http://${EC2_HOST}/"
+                echo "Deployment finished. Open http://${EC2_HOST}/ to check your website."
             }
         }
     }
