@@ -1,0 +1,57 @@
+pipeline {
+  agent any
+  environment {
+    EC2_USER = "ubuntu"                       // set to ubuntu or ec2-user as appropriate
+    EC2_HOST = ""                             // optional: can be set dynamically via terraform output
+    REMOTE_DIR = "/var/www/html"
+    SSH_CREDENTIAL_ID = "ec2-ssh-key"         // replace with the Jenkins SSH credentials id
+  }
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Discover EC2 IP (optional)') {
+      steps {
+        // Option A: Hardcode EC2_HOST in pipeline parameters
+        // Option B: read from a small file or from terraform output saved in repo (recommended: pass IP as pipeline parameter)
+        echo "Make sure EC2_HOST is set to the public IP of the instance."
+      }
+    }
+
+    stage('Deploy to EC2 via SSH') {
+      steps {
+        script {
+          if (!env.EC2_HOST?.trim()) {
+            error "EC2_HOST environment variable is empty. Set EC2_HOST to instance public IP."
+          }
+        }
+        sshagent (credentials: [env.SSH_CREDENTIAL_ID]) {
+          // Ensure host key checking is skipped for convenience (use known_hosts in production)
+          sh """
+            ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'bash -s' <<'ENDSSH'
+              set -e
+              cd ${REMOTE_DIR}
+              if [ -d .git ]; then
+                /usr/bin/git pull origin main || true
+              else
+                /usr/bin/git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_FORKED_REPO.git ${REMOTE_DIR}
+              fi
+              sudo chown -R www-data:www-data ${REMOTE_DIR}
+              sudo chmod -R 755 ${REMOTE_DIR}
+              sudo systemctl restart nginx
+            ENDSSH
+          """
+        }
+      }
+    }
+
+    stage('Validation') {
+      steps {
+        echo "Deployed. You can browse http://${EC2_HOST}/ to verify."
+      }
+    }
+  }
+}
