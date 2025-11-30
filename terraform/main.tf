@@ -47,7 +47,7 @@ resource "aws_security_group" "web_sg" {
 
 # EC2 instance creation
 resource "aws_instance" "web_server" {
-  ami                    = "ami-0522ab6e1ddcc7055"        # Ubuntu 22.04 LTS (ap-south-1)
+  ami                    = "data.aws_ami.ubuntu.id"        # Ubuntu 22.04 LTS (ap-south-1)
   instance_type          = var.instance_type
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.web_sg.id]
