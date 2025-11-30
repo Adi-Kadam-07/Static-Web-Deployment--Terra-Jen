@@ -37,7 +37,7 @@ pipeline {
               if [ -d .git ]; then
                 /usr/bin/git pull origin main || true
               else
-                /usr/bin/git clone https://github.com/YOUR_GITHUB_USERNAME/YOUR_FORKED_REPO.git ${REMOTE_DIR}
+                /usr/bin/git clone https://github.com/Adi-Kadam-07/Static-Web-Deployment--Terra-Jen.git ${REMOTE_DIR}
               fi
               sudo chown -R www-data:www-data ${REMOTE_DIR}
               sudo chmod -R 755 ${REMOTE_DIR}
