@@ -4,10 +4,9 @@
 This project demonstrates how to deploy a **static website** on an **AWS EC2 instance** using **Terraform** for infrastructure automation and **Jenkins** for continuous updates. The website is served using **Nginx** or **Apache**, and any changes pushed to the GitHub repository are automatically deployed through a **Jenkins pipeline using GitHub webhooks.**
 
 ## Project Architecture :
-![](/img/static_architecture.png)
-
-
-
+GitHub Repository → Jenkins CI/CD Pipeline → EC2 Instance (Nginx) → End Users
+       ↑                    ↓                      ↓
+   Webhook Trigger     SSH Deployment      Static Website Serving
 ---
 
 ## Tools & Technologies :
@@ -45,29 +44,17 @@ This project demonstrates how to deploy a **static website** on an **AWS EC2 ins
  
  
  ```
- main.tf
-
- terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-  required_version = ">= 1.2.0"
-}
+ Main.tf
 
 provider "aws" {
-  region = var.aws_region
+  region = "ap-south-1"
 }
 
-# Security Group for HTTP & SSH
 resource "aws_security_group" "web_sg" {
   name        = "static-web-sg"
-  description = "Allow HTTP and SSH inbound traffic"
+  description = "Allow HTTP and SSH traffic"
 
   ingress {
-    description = "Allow SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -75,7 +62,6 @@ resource "aws_security_group" "web_sg" {
   }
 
   ingress {
-    description = "Allow HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -88,21 +74,16 @@ resource "aws_security_group" "web_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "Terraform-Web-SG"
-  }
 }
 
-# EC2 instance creation
 resource "aws_instance" "web_server" {
-  ami                    = "ami-0522ab6e1ddcc7055"        # Ubuntu 22.04 LTS (ap-south-1)
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  ami                    = "ami-0c02fb55956c7d316"   # Ubuntu 22.04 LTS ap-south-1
+  instance_type          = "t2.micro"
+  key_name               = "AdityaKadam"
+  vpc_security_group_ids = [aws_security_group.static-web-sg.id]
 
   user_data = templatefile("${path.module}/user_data.tpl", {
-    repo_url = var.github_repo
+    repo_url = "https://github.com/Adi-Kadam-07/Static-Web-Deployment--Terra-Jen.git"
   })
 
   tags = {
@@ -110,16 +91,14 @@ resource "aws_instance" "web_server" {
   }
 }
 
-# Output Public IP
 output "public_ip" {
-  description = "EC2 Public IP for accessing the website"
-  value       = aws_instance.web_server.public_ip
+  value = aws_instance.web_server.public_ip
 }
 
 output "website_url" {
-  description = "URL to access the web server"
-  value       = "http://${aws_instance.web_server.public_ip}"
+  value = "http://${aws_instance.web_server.public_ip}"
 }
+
 
 
 ```
