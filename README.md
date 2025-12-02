@@ -1,4 +1,4 @@
-# Static Website on EC2 Using Terraform Jenkins Deployment :
+# Static Website Deployment on EC2 Using Terraform & Jenkins :
 
 ## Description :
 This project demonstrates how to deploy a **static website** on an **AWS EC2 instance** using **Terraform** for infrastructure automation and **Jenkins** for continuous updates. The website is served using **Nginx** or **Apache**, and any changes pushed to the GitHub repository are automatically deployed through a **Jenkins pipeline using GitHub webhooks.**
